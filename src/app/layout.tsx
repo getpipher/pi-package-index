@@ -8,6 +8,12 @@ export const metadata: Metadata = {
   description:
     "Unofficial community index of Pi coding-agent packages, ranked by downloads + GitHub stars + maintenance. Not affiliated with earendil-works.",
   metadataBase: new URL("https://pi-package.rectorspace.com"),
+  alternates: {
+    types: {
+      "application/rss+xml": "/feed.xml",
+      "application/feed+json": "/feed.json",
+    },
+  },
 };
 
 export default function RootLayout({
@@ -27,6 +33,7 @@ export default function RootLayout({
               <div className="flex items-center gap-4 text-sm text-neutral-400">
                 <Link href="/" className="hover:text-neutral-100">Packages</Link>
                 <Link href="/about" className="hover:text-neutral-100">About</Link>
+                <a href="/feed.xml" className="hover:text-neutral-100">Feed</a>
                 <a href="/api/packages" className="hover:text-neutral-100">API</a>
                 <a
                   href="https://github.com/getpipher/pi-package-index"
@@ -57,7 +64,11 @@ export default function RootLayout({
                 Source
               </a>{" "}
               ·{" "}
-              <a href="/api/packages" className="hover:text-neutral-400">API</a>
+              <a href="/api/packages" className="hover:text-neutral-400">API</a>{" "}
+              ·{" "}
+              <a href="/feed.xml" className="hover:text-neutral-400">RSS</a>{" "}
+              ·{" "}
+              <a href="/feed.json" className="hover:text-neutral-400">JSON Feed</a>
             </p>
           </footer>
         </div>
