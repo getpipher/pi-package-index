@@ -41,11 +41,12 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 **Files:** `src/app/compare/page.tsx` (reads `?p=name1&name2&…`), a compare table component. Link from detail pages ("compare").
 **Gate:** `/compare?p=a&p=b` renders a comparison; handles missing names.
 
-## #6 — Download trend sparklines (12-week)  · effort: med
+## #6 — Download trend sparklines (12-week)  · effort: med  ✅ SHIPPED (44e0834)
 **Goal:** 12-week download history per package as an inline sparkline (rows + detail).
-**Files:** pipeline fetches `https://api.npmjs.org/downloads/range/last-week/...` ×12? No — use `/downloads/range/last-90-days/<name>` (one call → daily series). Adds ~4,300 calls/refresh (heavy — gate behind a weekly sub-run, not daily). Store `data/trends.min.json` (name → number[]). Client renders an SVG sparkline.
-**Concern:** 4,300 extra npm API calls/refresh. Decision: refresh **weekly** (separate `refresh-trends.yml` cron, Mondays), not daily. Note npm rate-limit (reuse rate limiter + cache).
-**Gate:** sparkline renders on detail + (optionally) rows; trends refresh weekly.
+**Shipped approach:** on-demand fetch in the detail page (RSC) via `src/lib/trends.ts` — `fetchDownloadRange` hits `api.npmjs.org/downloads/range/YYYY-MM-DD:YYYY-MM-DD/<name>` (last 90 days, daily) with `next: { revalidate: 604800 }` (7-day ISR), then `toWeeklyBuckets` downsamples the last 84 days to 12 weekly totals. `src/components/Sparkline.tsx` renders an inline SVG (area + line); all-zero / 404 / empty series degrade to a dashed baseline + "No downloads in the last 12 weeks." caption.
+**Deviation from original plan:** on-demand + ISR instead of a weekly `refresh-trends.yml` cron + bundled `data/trends.min.json`. Rationale: matches the shipped #5 (README/quality) on-demand pattern; avoids a ~4,300-pkg/week crawl and a ~1.3 MB server bundle; the 7-day revalidate still satisfies "trends refresh weekly." Rows intentionally skipped (gate says "optionally rows") to keep the home bundle lean — revisit if rows need sparklines (would require bundling).
+**Gotcha fixed:** the npm range API does NOT accept a `last-90-days` keyword (only `last-day`/`last-week`/`last-month` or explicit `YYYY-MM-DD:YYYY-MM-DD`) — the keyword silently returns a bogus 1-day/zero result. Always compute an explicit date range. Scoped names encoded as `@`→`%40`, `/` literal.
+**Gate:** ✅ sparkline renders on detail for data + no-data packages; typecheck + lint + build green; trends refresh weekly via 7-day ISR.
 
 ## #5 — Security & quality signals  · effort: high → done light (on-demand)  ✅ SHIPPED (23416ed)
 **Goal:** per-package: has tests, has README, license, bundled vs peer deps, install size, `pi` manifest validation, archived. Surface as badges on rows + detail.
