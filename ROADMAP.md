@@ -56,10 +56,11 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 **Data:** adds packument fetch for every package at refresh (4,300 calls) — heavy. Gate behind weekly or reuse the on-demand detail-page packument fetch (cache) rather than storing all. Recommend: compute on-demand at detail-page time (reuse packument fetch), not in the bulk index.
 **Gate:** badges render on detail; license/has-tests/archived accurate.
 
-## #8 — Upstream donation: PR stars/filters/API to earendil-works/pi  · effort: coordination
+## #8 — Upstream donation: PR stars/filters/API to earendil-works/pi  · effort: coordination  ✅ SHIPPED (proposal issue posted)
 **Goal:** offer our stars + filter + public-API features back to the official gallery as a PR; frame as companion not competitor.
-**Approach:** draft a PR to `earendil-works/pi` (their gallery is likely in that repo or a site repo) adding GitHub stars + maintenance badge + category filter + a `/api/packages` endpoint; reference our data/API as a fallback. **Needs RECTOR's call** on which repo + tone + whether to open it. Last.
-**Gate:** PR opened (or, if they decline, a documented proposal issue on their repo).
+**Outcome:** posted as `earendil-works/pi#6027` — https://github.com/earendil-works/pi/issues/6027 (issue, `to-discuss` intended — external contributors can't set labels, maintainers can). Draft + investigation notes in `~/Documents/secret/claude-strategy/pi-package-index/upstream-proposal-draft.md`.
+**Investigation:** the official gallery `pi.dev/packages` ("Package Catalog · Pi") is a client-side page fetching the npm registry directly; it lacks GitHub stars, maintenance badge, topic categories, and a public API. Its source repo `earendil-works/pi-website` is **archived**, so a code PR wasn't viable — the contribution became a proposal issue on the active `earendil-works/pi` repo (discussions + issues enabled, `to-discuss` culture). The proposal offers, in increasing involvement: (1) consume our `/api/packages` + `/api/search` as enrichment/fallback, (2) adopt the ~500-line enrichment pipeline, (3) cross-link — framed as a companion, MIT-licensed, with our live index as a working reference.
+**Gate:** ✅ documented proposal issue on their repo posted (#6027). Outcome now depends on their response; revisit if they engage.
 
 ---
 
