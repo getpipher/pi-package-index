@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ExternalLink, GitBranch, Package, Star, Download } from "lucide-react";
 import type { Package as Pkg } from "@/lib/types";
 import { formatNumber, relativeTime } from "@/lib/format";
@@ -51,14 +52,12 @@ export function PackageRow({ pkg }: { pkg: Pkg }) {
       <div className="flex items-start justify-between gap-4">
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <a
-              href={pkg.npmUrl}
-              target="_blank"
-              rel="noopener noreferrer"
+            <Link
+              href={`/p/${encodeURIComponent(pkg.name)}`}
               className="font-mono text-sm font-semibold text-neutral-100 hover:text-white"
             >
               {pkg.name}
-            </a>
+            </Link>
             {pkg.types.map((t) => (
               <TypeBadge key={t} type={t} />
             ))}
