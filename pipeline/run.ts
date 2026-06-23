@@ -1,10 +1,11 @@
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import {
+  DAY_TTL,
   enumeratePackages,
   fetchDownloads,
   pool,
-  readCache,
+  readCacheWithTtl,
   resolveRepoUrl,
   safeName,
   writeCache,
@@ -16,6 +17,8 @@ import type { Enrichment } from "./normalize";
 import type { Package } from "../src/lib/types";
 
 const DOWNLOADS_CACHE = "data/.cache/downloads";
+const SEARCH_CACHE_DIR = "data/.cache";
+const SEARCH_CACHE_FILE = "npm-search.json";
 
 interface Args {
   limit: number | null;
@@ -36,16 +39,19 @@ function parseArgs(argv: string[]): Args {
   return args;
 }
 
+interface SearchCache {
+  fetchedAt: string;
+  packages: NpmPackageMeta[];
+}
+
 async function loadSearchCache(): Promise<NpmPackageMeta[] | null> {
-  const cached = (await readCache("data/.cache", "npm-search.json")) as
-    | { generatedAt: string; packages: NpmPackageMeta[] }
-    | null;
+  const cached = (await readCacheWithTtl(SEARCH_CACHE_DIR, SEARCH_CACHE_FILE, DAY_TTL)) as SearchCache | null;
   return cached?.packages ?? null;
 }
 
 async function saveSearchCache(packages: NpmPackageMeta[]): Promise<void> {
-  await writeCache("data/.cache", "npm-search.json", {
-    generatedAt: new Date().toISOString(),
+  await writeCache(SEARCH_CACHE_DIR, SEARCH_CACHE_FILE, {
+    fetchedAt: new Date().toISOString(),
     packages,
   });
 }
@@ -53,7 +59,7 @@ async function saveSearchCache(packages: NpmPackageMeta[]): Promise<void> {
 async function cachedDownloads(name: string, noCache: boolean): Promise<number> {
   const file = `${safeName(name)}.json`;
   if (!noCache) {
-    const cached = (await readCache(DOWNLOADS_CACHE, file)) as { downloads: number } | null;
+    const cached = (await readCacheWithTtl(DOWNLOADS_CACHE, file, DAY_TTL)) as { downloads: number } | null;
     if (cached) return cached.downloads;
   }
   try {
@@ -72,13 +78,11 @@ async function cachedGithub(
 ): Promise<{ github: GitHubRepoData | null; parsed: ParsedRepo | null }> {
   let parsed = parseGitHubRepo(meta.repoUrl);
   if (!parsed && meta.repoUrl === null) {
-    // Search omitted a repo link; try the packument once.
     const resolved = await resolveRepoUrl(meta.name);
     if (resolved) parsed = parseGitHubRepo(resolved);
   }
   if (!parsed) return { github: null, parsed: null };
-  void noCache; // cache bypass for github is handled inside fetchRepo's cache layer
-  const github = await fetchRepo(parsed);
+  const github = await fetchRepo(parsed, noCache);
   return { github, parsed };
 }
 
@@ -86,7 +90,6 @@ async function main(): Promise<void> {
   const args = parseArgs(process.argv.slice(2));
   console.log(`pi-package-index pipeline — limit=${args.limit ?? "all"} noCache=${args.noCache}`);
 
-  // 1. Enumerate (or load cache).
   let metas = args.noCache ? null : await loadSearchCache();
   if (!metas) {
     console.log("Enumerating npm packages (keywords:pi-package)…");
@@ -102,14 +105,12 @@ async function main(): Promise<void> {
   if (args.limit) metas = metas.slice(0, args.limit);
   console.log(`Enriching ${metas.length} packages…`);
 
-  // 2. Downloads (npm downloads API is burst-sensitive — keep concurrency low).
   let done = 0;
   const downloads = await pool(metas, 3, (m) => cachedDownloads(m.name, args.noCache), () => {
     done++;
     if (done % 50 === 0 || done === metas.length) console.log(`  downloads ${done}/${metas.length}`);
   });
 
-  // 3. GitHub (authed token allows higher concurrency).
   done = 0;
   const githubResults = await pool(
     metas,
@@ -121,7 +122,6 @@ async function main(): Promise<void> {
     },
   );
 
-  // 4. Assemble.
   const packages: Package[] = metas.map((meta, i) => {
     const { github, parsed } = githubResults[i]!;
     const e: Enrichment = { meta, downloads: downloads[i] ?? 0, github, parsedRepo: parsed };
@@ -130,7 +130,6 @@ async function main(): Promise<void> {
 
   const index = buildIndex(new Date().toISOString(), packages);
 
-  // 5. Write outputs.
   await fs.mkdir("data", { recursive: true });
   await fs.writeFile(join("data", "packages.json"), JSON.stringify(index, null, 2) + "\n");
   await fs.writeFile(join("data", "packages.min.json"), JSON.stringify(index));

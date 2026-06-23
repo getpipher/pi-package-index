@@ -73,9 +73,7 @@ export async function enumeratePackages(onProgress?: (n: number, total: number) 
     }
     onProgress?.(out.length, total);
     from += PAGE_SIZE;
-    // Polite pacing for the rate-limited search endpoint.
     if (from < total) await new Promise((r) => setTimeout(r, 400));
-    // Safety cap against runaway loops.
     if (out.length > 10000) break;
   }
   return out;
@@ -88,9 +86,7 @@ interface DownloadsResponse {
   end: string;
 }
 
-/** Fetch last-month download count for a package. */
 export async function fetchDownloads(name: string): Promise<number> {
-  // Scoped names keep their "/" — the npm downloads API accepts it raw.
   const data = await fetchJson<DownloadsResponse>(`${NPM_DOWNLOADS}/${name}`);
   return data.downloads;
 }
@@ -99,7 +95,6 @@ interface Packument {
   repository?: string | { url?: string };
 }
 
-/** Resolve a repository URL from the packument when search omitted it. */
 export async function resolveRepoUrl(name: string): Promise<string | null> {
   try {
     const p = await fetchJson<Packument>(`${NPM_PACKUMENT}/${encodeURIComponent(name).replace("%2F", "/")}`);
@@ -136,6 +131,11 @@ export function safeName(name: string): string {
   return name.replace(/[^a-z0-9._-]/gi, "_");
 }
 
+interface CachedEntry {
+  fetchedAt?: string;
+  [k: string]: unknown;
+}
+
 export async function readCache(dir: string, file: string): Promise<unknown | null> {
   try {
     const raw = await fs.readFile(join(dir, file), "utf8");
@@ -145,7 +145,25 @@ export async function readCache(dir: string, file: string): Promise<unknown | nu
   }
 }
 
+/** Read a cache entry only if it exists and is younger than ttlMs (based on `fetchedAt`). */
+export async function readCacheWithTtl(dir: string, file: string, ttlMs: number): Promise<unknown | null> {
+  try {
+    const raw = await fs.readFile(join(dir, file), "utf8");
+    const parsed = JSON.parse(raw) as CachedEntry;
+    if (parsed.fetchedAt) {
+      const age = Date.now() - Date.parse(parsed.fetchedAt);
+      if (Number.isFinite(age) && age > ttlMs) return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
 export async function writeCache(dir: string, file: string, data: unknown): Promise<void> {
   await fs.mkdir(dir, { recursive: true });
   await fs.writeFile(join(dir, file), JSON.stringify(data));
 }
+
+/** Day-ish TTL: same-day retries reuse cache; next-day runs refetch. */
+export const DAY_TTL = 23 * 60 * 60 * 1000;

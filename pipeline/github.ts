@@ -1,4 +1,4 @@
-import { readCache, writeCache, safeName } from "./npm";
+import { readCacheWithTtl, writeCache, safeName, DAY_TTL } from "./npm";
 
 const GITHUB_API = "https://api.github.com";
 
@@ -19,11 +19,9 @@ export function parseGitHubRepo(rawUrl: string | null): ParsedRepo | null {
   if (!rawUrl) return null;
   const url = rawUrl.trim();
 
-  // git@github.com:owner/repo(.git)
   const ssh = url.match(/github\.com:([^/]+)\/([^/\s]+?)(?:\.git)?(?:\/|$)/i);
   if (ssh) return { owner: ssh[1]!, repo: ssh[2]! };
 
-  // https://github.com/owner/repo(.git)?(/...) or git+https://
   const http = url.match(/github\.com\/([^/]+)\/([^/\s]+?)(?:\.git)?(?:\/|$)/i);
   if (http) return { owner: http[1]!, repo: http[2]! };
 
@@ -31,12 +29,7 @@ export function parseGitHubRepo(rawUrl: string | null): ParsedRepo | null {
 }
 
 function token(): string | null {
-  return (
-    process.env.PI_PKG_GH_PAT ||
-    process.env.GITHUB_TOKEN ||
-    process.env.GH_TOKEN ||
-    null
-  );
+  return process.env.PI_PKG_GH_PAT || process.env.GITHUB_TOKEN || process.env.GH_TOKEN || null;
 }
 
 async function fetchRepoRaw(owner: string, repo: string): Promise<GitHubRepoData | null> {
@@ -48,7 +41,6 @@ async function fetchRepoRaw(owner: string, repo: string): Promise<GitHubRepoData
   };
   if (t) headers.Authorization = `Bearer ${t}`;
 
-  // Backoff once on a secondary rate-limit (403 with retry-after / 429).
   for (let attempt = 0; attempt < 2; attempt++) {
     const res = await fetch(`${GITHUB_API}/repos/${owner}/${repo}`, { headers });
     if (res.ok) {
@@ -73,7 +65,6 @@ async function fetchRepoRaw(owner: string, repo: string): Promise<GitHubRepoData
         continue;
       }
     }
-    // Non-retryable error — surface but don't crash the run.
     console.warn(`github: ${res.status} for ${owner}/${repo}`);
     return null;
   }
@@ -82,12 +73,14 @@ async function fetchRepoRaw(owner: string, repo: string): Promise<GitHubRepoData
 
 const CACHE_DIR = "data/.cache/github";
 
-/** Cached GitHub repo lookup. Returns null when the package has no GitHub repo. */
-export async function fetchRepo(parsed: ParsedRepo): Promise<GitHubRepoData | null> {
+/** Cached GitHub repo lookup with a daily TTL. `noCache` forces a fresh fetch. */
+export async function fetchRepo(parsed: ParsedRepo, noCache = false): Promise<GitHubRepoData | null> {
   const file = `${safeName(`${parsed.owner}/${parsed.repo}`)}.json`;
-  const cached = (await readCache(CACHE_DIR, file)) as GitHubRepoData | null;
-  if (cached) return cached;
+  if (!noCache) {
+    const cached = (await readCacheWithTtl(CACHE_DIR, file, DAY_TTL)) as GitHubRepoData | null;
+    if (cached) return cached;
+  }
   const data = await fetchRepoRaw(parsed.owner, parsed.repo);
-  if (data) await writeCache(CACHE_DIR, file, data);
+  if (data) await writeCache(CACHE_DIR, file, { ...data, fetchedAt: new Date().toISOString() });
   return data;
 }
