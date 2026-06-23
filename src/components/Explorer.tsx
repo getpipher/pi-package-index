@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ChevronDown, Loader2, AlertCircle } from "lucide-react";
 import type { Package, ResourceType, SortKey } from "@/lib/types";
-import { filterParams, fetchPackages, type FilterState } from "@/lib/api";
+import { filterParams, fetchPackages, fetchSearch, type FilterState } from "@/lib/api";
 import { Filters } from "./Filters";
 import { PackageRow } from "./PackageRow";
 
@@ -15,6 +15,7 @@ const DEFAULT_STATE: FilterState = {
   minStars: null,
   maintained: false,
   sort: "downloads",
+  deep: false,
 };
 
 const PER_PAGE = 100;
@@ -34,6 +35,7 @@ function readUrlState(): FilterState {
     minStars: minStars && minStars !== "" ? Number(minStars) : null,
     maintained: p.get("mnt") === "1",
     sort: (p.get("sort") as SortKey) || "downloads",
+    deep: p.get("deep") === "1",
   };
 }
 
@@ -72,14 +74,20 @@ export function Explorer() {
 
   // Fetch a page. `mode: "replace"` resets the list (filter change, page 1);
   // `mode: "append"` extends it (load more). Race-safe via reqId.
+  // In deep-search mode (README full-text), there is no pagination — one
+  // ranked fetch returns the full result set, so append is a no-op.
   const fetchPage = useCallback(
     async (p: number, mode: "replace" | "append") => {
       const id = ++reqId.current;
+      const deep = state.deep && state.q.trim() !== "";
+      if (deep && mode === "append") return; // no pagination in deep mode
       if (mode === "replace") setLoading(true);
       else setLoadingMore(true);
       setError(null);
       try {
-        const r = await fetchPackages(state, p, PER_PAGE);
+        const r = deep
+          ? await fetchSearch(state, PER_PAGE)
+          : await fetchPackages(state, p, PER_PAGE);
         if (reqId.current !== id) return; // a newer request superseded this one
         setGeneratedAt(r.generatedAt);
         setTotal(r.count);
@@ -111,7 +119,8 @@ export function Explorer() {
     return () => clearTimeout(timer);
   }, [state, hydrated, fetchPage]);
 
-  const canLoadMore = !loading && !loadingMore && items.length < filtered;
+  const canLoadMore =
+    !loading && !loadingMore && items.length < filtered && !(state.deep && state.q.trim() !== "");
 
   async function loadMore() {
     if (loadingMore || !canLoadMore) return;

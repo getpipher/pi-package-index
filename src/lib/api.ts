@@ -18,6 +18,8 @@ export interface FilterState {
   minStars: number | null;
   maintained: boolean;
   sort: SortKey;
+  /** deep = full-text search over READMEs via /api/search */
+  deep: boolean;
 }
 
 /** Build the shared filter query params (used for both the URL and the API). */
@@ -29,6 +31,7 @@ export function filterParams(s: FilterState): URLSearchParams {
   if (s.minDownloads !== null) p.set("mindl", String(s.minDownloads));
   if (s.minStars !== null) p.set("minst", String(s.minStars));
   if (s.maintained) p.set("mnt", "1");
+  if (s.deep) p.set("deep", "1");
   if (s.sort !== "downloads") p.set("sort", s.sort);
   return p;
 }
@@ -50,4 +53,29 @@ export async function fetchPackages(
   const res = await fetch(url, { headers: { Accept: "application/json" } });
   if (!res.ok) throw new Error(`API responded ${res.status} ${res.statusText}`);
   return (await res.json()) as ApiResponse;
+}
+
+/** Full-text README search via /api/search. Returns ranked matches across all
+ *  packages (no pagination — the route caps at `limit`). */
+export async function fetchSearch(s: FilterState, limit = 100): Promise<ApiResponse> {
+  const p = filterParams(s);
+  p.set("limit", String(limit));
+  const url = `/api/search?${p.toString()}`;
+  const res = await fetch(url, { headers: { Accept: "application/json" } });
+  if (!res.ok) throw new Error(`Search API responded ${res.status} ${res.statusText}`);
+  const body = (await res.json()) as {
+    generatedAt: string;
+    count: number;
+    filtered: number;
+    packages: Package[];
+  };
+  return {
+    generatedAt: body.generatedAt,
+    count: body.filtered, // total matches → "of N"
+    filtered: body.packages.length, // packages returned → "showing K"
+    page: 1,
+    perPage: limit,
+    totalPages: 1,
+    packages: body.packages,
+  };
 }

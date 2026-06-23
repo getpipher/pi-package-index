@@ -1,6 +1,6 @@
 "use client";
 
-import { Search, X } from "lucide-react";
+import { Search, X, FileSearch } from "lucide-react";
 import { ALL_CATEGORIES, RESOURCE_TYPES, type ResourceType, type SortKey } from "@/lib/types";
 
 interface FilterState {
@@ -11,6 +11,7 @@ interface FilterState {
   minStars: number | null;
   maintained: boolean;
   sort: SortKey;
+  deep: boolean;
 }
 
 interface Props {
@@ -79,6 +80,20 @@ export function Filters({ state, onChange, onReset, total, shown }: Props) {
           }`}
         >
           Maintained only
+        </button>
+
+        <button
+          type="button"
+          onClick={() => onChange({ deep: !state.deep })}
+          disabled={state.q.trim() === ""}
+          title={state.q.trim() === "" ? "Type a query first to search READMEs" : "Search full README text, not just name/description"}
+          className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-1.5 text-sm ${
+            state.deep
+              ? "border-sky-800 bg-sky-950/50 text-sky-300"
+              : "border-neutral-800 bg-neutral-900 text-neutral-400 hover:text-neutral-200"
+          } disabled:cursor-not-allowed disabled:opacity-50`}
+        >
+          <FileSearch size={14} /> READMEs
         </button>
 
         {anyFilter && (

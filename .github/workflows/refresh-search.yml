@@ -1,0 +1,61 @@
+name: Refresh README search corpus
+
+on:
+  schedule:
+    # 05:00 UTC every Monday — READMEs change slowly; weekly is plenty and
+    # avoids ~4,300 packument fetches/night.
+    - cron: '0 5 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-search
+  cancel-in-progress: false
+
+jobs:
+  refresh-search:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      # Restore the readme cache so a workflow_dispatch retry resumes from
+      # cached entries (7-day TTL; the scheduled run forces a full refetch).
+      - name: Restore readme cache
+        uses: actions/cache@v4
+        with:
+          path: data/.cache/readmes
+          key: refresh-search-${{ github.run_id }}
+          restore-keys: refresh-search-
+
+      - name: Run readmes pipeline (scheduled run forces a fresh fetch)
+        run: |
+          ARGS=""
+          if [ "${{ github.event_name }}" = "schedule" ]; then ARGS="--no-cache"; fi
+          pnpm pipeline:readmes $ARGS
+
+      - name: Commit search corpus on diff (rebase against latest main before pushing)
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain data/readmes.json)" ]]; then
+            git add data/readmes.json
+            git commit -m "data: refresh README search corpus [skip ci]"
+            git fetch origin main
+            git rebase origin/main
+            git push
+          else
+            echo "No corpus changes; skipping commit."
+          fi
