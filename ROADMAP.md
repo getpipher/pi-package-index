@@ -30,11 +30,13 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 **Data:** curated by RECTOR (seed a few); auto-seed by category from the index. Keep `data/collections.json` committed (small).
 **Gate:** `/collections` lists collections; `/collections/mcp-adapters` renders matching packages.
 
-## #4 — Full-text README search  · effort: high
+## #4 — Full-text README search  · effort: high  ✅ SHIPPED (8a1d586)
 **Goal:** search over READMEs (not just name/desc) for deeper discovery.
-**Files:** pipeline fetches README at refresh time, writes `data/readmes.min.json` (name → readme text, gzipped if needed); a build step builds a client-side index (MiniSearch) or a server-side search route `/api/search?q=`. 
-**Concern:** README payload (~40 MB for 4,300). Options: (a) server-side search route that scans `data/readmes.min.json` (loaded once, cached); (b) client MiniSearch lazy-loaded. Recommend (a) — server-side, no client payload.
-**Gate:** `/api/search?q=solana` returns ranked matches including README hits.
+**Shipped approach:** server-side `/api/search` route backed by a flexsearch `Document` index (module singleton, built once per cold start ~0.9s, warm ~4ms, edge-cached `s-maxage=3600`). Indexes **name + categories + description + README** with weights (name > categories > description > readme); per-field results merged with a position decay, then type/category/maintained/min filters applied. Categories were added to the index so tag-style queries like `solana` match tagged packages even when the word is absent from name/desc/readme (the literal ROADMAP gate).
+**Pipeline:** `pipeline/readmes.ts` (weekly `refresh-search.yml` cron, Mondays 05:00 UTC) fetches each packument README, strips HTML/markdown-links/bare-URLs, truncates to 800 chars, writes `data/readmes.json` (~3.2 MB, flat `{name: text}`). Lone UTF-16 surrogates are stripped so strict JSON parsers (Turbopack/SWC) accept the file. Reuses the existing rate limiter / pool / disk cache (`data/.cache/readmes`, 7-day TTL).
+**Client:** `FilterState.deep` flag (URL `deep=1`); a "⌕ READMEs" toggle in the filter bar; Explorer branches to `/api/search` (ranked top 100, no pagination) when deep + a query is active. `data/readmes.json` is a **server-only** build-time import — never copied to `public/`, never shipped to the client.
+**Decisions / gotchas:** (1) `flexsearch` was already a dependency (pre-staged) — used it over MiniSearch. (2) The `export()` API is fiddly/streaming, so the index is rebuilt at cold start from the committed corpus rather than serialized. (3) Committing ~3.2 MB weekly grows git, but READMEs change slowly so delta storage keeps diffs small (ROADMAP sanctioned committing `readmes.min.json`). (4) A weekly cron is unavoidable here — unlike #6, full-text search has no on-demand option; the corpus must exist prebuilt. (5) Turbopack rejects lone-surrogate `\uDXXX` escapes that V8 accepts — must strip them.
+**Gate:** ✅ `/api/search?q=solana` returns 18 ranked matches; `q=memory`/`q=mcp`/`q=context`/prefix (`mem`)/multi-word (`context window`) all return relevant ranked results; typecheck + lint + build green; live deploy verified.
 
 ## #2 — Side-by-side compare  · effort: med  ✅ SHIPPED (b43c5c9)
 **Goal:** pick 2–4 packages (via query params), compare downloads/stars/maintenance/desc/types side-by-side. Shareable URL.
