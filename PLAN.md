@@ -12,7 +12,7 @@ Derived from [SPEC.md](./SPEC.md). Tracked commit-by-commit. Post-v1 work is in 
 ## Phases
 - [x] **Phase 0 — Project init** — package.json, tsconfig, next.config, postcss (Tailwind v4), eslint flat config, globals.css, minimal layout/page. Gate: `pnpm install` + `pnpm typecheck` + `pnpm build` clean.
 - [x] **Phase 1 — Data layer + types** — `lib/types.ts`, `lib/data.ts`, `lib/filter.ts` (shared filter/sort/paginate). Gate: types compile.
-- [ ] **Phase 2 — Pipeline** — `pipeline/{npm,github,categories,normalize,run}.ts`, `data/.cache` resume, `--limit`/`--no-cache` flags, writes `data/packages.json` + `.min.json`. Gate: `pnpm pipeline --limit 50` → valid JSON matching schema.
+- [x] **Phase 2 — Pipeline** — `pipeline/{npm,github,categories,normalize,run}.ts`, `data/.cache` resume, `--limit`/`--no-cache` flags, writes `data/packages.json` + `.min.json`. Gate: `pnpm pipeline --limit 50` → valid JSON matching schema.
 - [ ] **Phase 3 — UI core (SSG)** — `layout.tsx` (nav + disclaimer footer), `page.tsx` (server, reads data), `Explorer` client (FlexSearch, filters, sort, URL params, load-more), `PackageTable`/`Filters`/`SearchBar`/`PackageRow`, Lucide icons. Gate: `pnpm build` SSGs home; filters work in `pnpm dev`.
 - [ ] **Phase 4 — Public API** — `/api/packages` route (stateless, `lib/filter`, paginate ≤100, CORS `*`, cache headers) + copy generated JSON to `public/data/`. Gate: `curl` returns valid filtered JSON.
 - [ ] **Phase 5 — About page** — sources, refresh cadence, how-to-get-listed, disclaimer, links. Gate: builds.
