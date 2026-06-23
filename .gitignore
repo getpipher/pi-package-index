@@ -1,0 +1,23 @@
+# deps
+node_modules/
+.pnpm-store/
+
+# next
+.next/
+out/
+.vercel/
+
+# pipeline cache (generated, not committed)
+data/.cache/
+
+# env
+.env
+.env.local
+.env.*.local
+
+# os
+.DS_Store
+
+# logs
+*.log
+npm-debug.log*

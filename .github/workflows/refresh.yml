@@ -1,0 +1,51 @@
+name: Refresh package data
+
+on:
+  schedule:
+    # 04:00 UTC daily
+    - cron: '0 4 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+
+      - run: pnpm install --frozen-lockfile
+
+      - name: Run pipeline (npm + GitHub via GITHUB_TOKEN)
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Optional escalation token if secondary rate limits bite (leave empty for v1).
+          PI_PKG_GH_PAT: ${{ secrets.PI_PKG_GH_PAT }}
+        run: pnpm pipeline
+
+      - name: Commit only on diff
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          if [[ -n "$(git status --porcelain data/packages.json data/packages.min.json)" ]]; then
+            git add data/packages.json data/packages.min.json
+            git commit -m "data: refresh package index [skip ci]
+            Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git push
+          else
+            echo "No data changes; skipping commit."
+          fi
