@@ -3,6 +3,8 @@
 > **Unofficial** community index of [Pi coding-agent](https://github.com/earendil-works/pi) packages — ranked by downloads + GitHub stars + maintenance health, with filterable search and a public JSON API.
 >
 > Not affiliated with or endorsed by earendil-works. Live at **pi-package.rectorspace.com**.
+>
+> **Status:** live and refreshed daily via a GitHub Actions cron.
 
 ## What
 
