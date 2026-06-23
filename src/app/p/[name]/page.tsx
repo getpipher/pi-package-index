@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Download, Star, GitBranch, GitFork, AlertTriangle, Archive } from "lucide-react";
+import { ArrowLeft, Download, Star, GitBranch, GitFork, AlertTriangle, Archive, GitCompareArrows } from "lucide-react";
 import { getIndex } from "@/lib/data";
 import { formatNumber, relativeTime } from "@/lib/format";
 import { InstallBar } from "@/components/InstallBar";
@@ -50,7 +50,6 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
-// Single-segment route; the package name (incl. scoped `/`) is URL-encoded by callers.
 async function resolveName(params: { name: string }): Promise<string> {
   return decodeURIComponent(params.name);
 }
@@ -77,9 +76,17 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
-      <Link href="/" className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-300">
-        <ArrowLeft size={14} /> All packages
-      </Link>
+      <div className="flex items-center justify-between">
+        <Link href="/" className="inline-flex items-center gap-1 text-sm text-neutral-500 hover:text-neutral-300">
+          <ArrowLeft size={14} /> All packages
+        </Link>
+        <Link
+          href={`/compare?p=${encodeURIComponent(pkg.name)}`}
+          className="inline-flex items-center gap-1 text-sm text-neutral-400 hover:text-neutral-200"
+        >
+          <GitCompareArrows size={14} /> Compare
+        </Link>
+      </div>
 
       <header className="mt-4">
         <div className="flex flex-wrap items-center gap-2">
