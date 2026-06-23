@@ -24,7 +24,7 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 **Files:** `src/app/feed.xml/route.ts`, `src/app/feed.json/route.ts` — read bundled index, sort by `publishedAt`/`lastPush`, slice top 50, emit RSS 2.0 + JSON Feed 1.1. `Cache-Control: public, max-age=3600`. Add `<link rel="alternate">` in layout head.
 **Gate:** `curl /feed.xml` validates as RSS 2.0; `/feed.json` validates as JSON Feed.
 
-## #3 — Curated collections (`/collections/[slug]`)  · effort: med
+## #3 — Curated collections (`/collections/[slug]`)  · effort: med  ✅ SHIPPED (6ef3f15)
 **Goal:** human-curated + auto-seeded collections: "Best for Solana devs", "MCP adapters", "Context-savers", "Browser automation", "Vision". Key differentiator vs the official gallery.
 **Files:** `data/collections.json` (curated: slug, title, description, package names, optional category auto-seed rule), `src/app/collections/[slug]/page.tsx`, index list at `/collections`, nav link.
 **Data:** curated by RECTOR (seed a few); auto-seed by category from the index. Keep `data/collections.json` committed (small).
