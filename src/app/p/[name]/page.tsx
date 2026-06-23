@@ -5,9 +5,11 @@ import { ArrowLeft, Download, Star, GitBranch, GitFork, AlertTriangle, Archive, 
 import { getIndex } from "@/lib/data";
 import { formatNumber, relativeTime } from "@/lib/format";
 import { deriveQuality, formatSize, type QualitySignals } from "@/lib/quality";
+import { fetchDownloadRange, toWeeklyBuckets } from "@/lib/trends";
 import { InstallBar } from "@/components/InstallBar";
 import { GithubIcon } from "@/components/GithubIcon";
 import { Readme } from "@/components/Readme";
+import { Sparkline } from "@/components/Sparkline";
 import type { Package, ResourceType } from "@/lib/types";
 
 interface Packument {
@@ -102,6 +104,8 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
   if (!pkg) notFound();
 
   const { readme, quality } = await fetchPackument(pkg.name);
+  const weeklyTrend = toWeeklyBuckets(await fetchDownloadRange(pkg.name));
+  const trendTotal = weeklyTrend.reduce((a, b) => a + b, 0);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -162,6 +166,22 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
           </div>
         </section>
       )}
+
+      <section className="mt-4 rounded-lg border border-neutral-800 bg-neutral-950/60 px-4 py-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="flex flex-col gap-1">
+            <h2 className="flex items-center gap-1.5 text-sm font-semibold text-neutral-300">
+              <Download size={14} /> Download trend
+            </h2>
+            <p className="text-xs text-neutral-500">
+              {weeklyTrend.length > 0
+                ? `${formatNumber(trendTotal)} downloads · last 12 weeks (weekly)`
+                : "No downloads in the last 12 weeks."}
+            </p>
+          </div>
+          <Sparkline data={weeklyTrend} />
+        </div>
+      </section>
 
       {pkg.categories.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-1.5">
