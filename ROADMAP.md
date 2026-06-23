@@ -19,7 +19,7 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 **Edge cases:** missing README → fallback note + link to npm/repo; relative image URLs in README → broken (rewrite to GitHub raw in v1.1); 404 unknown name → `notFound()`; packument fetch fail → degrade gracefully (show meta without README).
 **Gate:** typecheck + lint + build; `/p/<scoped/name>` renders; untrusted README sanitized (no raw script/style).
 
-## #7 — RSS/Atom feed (`/feed.xml`, `/feed.json`)  · effort: low
+## #7 — RSS/Atom feed (`/feed.xml`, `/feed.json`)  · effort: low  ✅ SHIPPED (e6babf7)
 **Goal:** feed of newly-published + recently-pushed packages for "what's new in Pi packages".
 **Files:** `src/app/feed.xml/route.ts`, `src/app/feed.json/route.ts` — read bundled index, sort by `publishedAt`/`lastPush`, slice top 50, emit RSS 2.0 + JSON Feed 1.1. `Cache-Control: public, max-age=3600`. Add `<link rel="alternate">` in layout head.
 **Gate:** `curl /feed.xml` validates as RSS 2.0; `/feed.json` validates as JSON Feed.
