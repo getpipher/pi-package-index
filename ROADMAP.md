@@ -60,7 +60,7 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 **Goal:** offer our stars + filter + public-API features back to the official gallery as a PR; frame as companion not competitor.
 **Outcome:** posted as `earendil-works/pi#6027` — https://github.com/earendil-works/pi/issues/6027 (issue, `to-discuss` intended — external contributors can't set labels, maintainers can). Draft + investigation notes in `~/Documents/secret/claude-strategy/pi-package-index/upstream-proposal-draft.md`.
 **Investigation:** the official gallery `pi.dev/packages` ("Package Catalog · Pi") is a client-side page fetching the npm registry directly; it lacks GitHub stars, maintenance badge, topic categories, and a public API. Its source repo `earendil-works/pi-website` is **archived**, so a code PR wasn't viable — the contribution became a proposal issue on the active `earendil-works/pi` repo (discussions + issues enabled, `to-discuss` culture). The proposal offers, in increasing involvement: (1) consume our `/api/packages` + `/api/search` as enrichment/fallback, (2) adopt the ~500-line enrichment pipeline, (3) cross-link — framed as a companion, MIT-licensed, with our live index as a working reference.
-**Gate:** ✅ documented proposal issue on their repo posted (#6027). Outcome now depends on their response; revisit if they engage.
+**Gate:** ✅ documented proposal issue on their repo posted (#6027). Note: their bot auto-closes all new-contributor issues by policy (maintainers reopen worthwhile ones daily); #6027 is auto-closed/`untriaged`, left as-is per CONTRIBUTING. Outcome depends on maintainer triage; revisit only if they engage.
 
 ---
 
