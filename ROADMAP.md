@@ -36,7 +36,7 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 **Concern:** README payload (~40 MB for 4,300). Options: (a) server-side search route that scans `data/readmes.min.json` (loaded once, cached); (b) client MiniSearch lazy-loaded. Recommend (a) — server-side, no client payload.
 **Gate:** `/api/search?q=solana` returns ranked matches including README hits.
 
-## #2 — Side-by-side compare  · effort: med
+## #2 — Side-by-side compare  · effort: med  ✅ SHIPPED (b43c5c9)
 **Goal:** pick 2–4 packages (via query params), compare downloads/stars/maintenance/desc/types side-by-side. Shareable URL.
 **Files:** `src/app/compare/page.tsx` (reads `?p=name1&name2&…`), a compare table component. Link from detail pages ("compare").
 **Gate:** `/compare?p=a&p=b` renders a comparison; handles missing names.

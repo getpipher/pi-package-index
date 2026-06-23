@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Download, Star, GitBranch, GitFork, AlertTriangle, Archive, GitCompareArrows } from "lucide-react";
+import { ArrowLeft, Download, Star, GitBranch, GitFork, AlertTriangle, Archive, GitCompareArrows, Check, X, ShieldCheck } from "lucide-react";
 import { getIndex } from "@/lib/data";
 import { formatNumber, relativeTime } from "@/lib/format";
+import { deriveQuality, formatSize, type QualitySignals } from "@/lib/quality";
 import { InstallBar } from "@/components/InstallBar";
 import { GithubIcon } from "@/components/GithubIcon";
 import { Readme } from "@/components/Readme";
@@ -11,19 +12,32 @@ import type { Package, ResourceType } from "@/lib/types";
 
 interface Packument {
   readme?: string;
+  license?: string | { type?: string };
+  files?: string[];
+  scripts?: Record<string, string>;
+  dependencies?: Record<string, string>;
+  peerDependencies?: Record<string, string>;
+  dist?: { unpackedSize?: number };
+  pi?: { extensions?: unknown[]; skills?: unknown[]; prompts?: unknown[]; themes?: unknown[] };
 }
 
-async function fetchReadme(name: string): Promise<string | null> {
+interface PackumentResult {
+  readme: string | null;
+  quality: QualitySignals | null;
+}
+
+async function fetchPackument(name: string): Promise<PackumentResult> {
   try {
     const res = await fetch(`https://registry.npmjs.org/${name}`, {
       headers: { Accept: "application/json" },
       next: { revalidate: 3600 },
     });
-    if (!res.ok) return null;
+    if (!res.ok) return { readme: null, quality: null };
     const data = (await res.json()) as Packument;
-    return typeof data.readme === "string" && data.readme.trim() ? data.readme : null;
+    const readme = typeof data.readme === "string" && data.readme.trim() ? data.readme : null;
+    return { readme, quality: deriveQuality(data) };
   } catch {
-    return null;
+    return { readme: null, quality: null };
   }
 }
 
@@ -50,6 +64,21 @@ function Stat({ icon, label, value }: { icon: React.ReactNode; label: string; va
   );
 }
 
+function Signal({ ok, label, value }: { ok: boolean | null; label: string; value?: string }) {
+  const tone =
+    ok === null
+      ? "text-neutral-500 border-neutral-800"
+      : ok
+        ? "text-emerald-300 border-emerald-900 bg-emerald-950/30"
+        : "text-neutral-400 border-neutral-800 bg-neutral-950/40";
+  return (
+    <span className={`inline-flex items-center gap-1 rounded border px-2 py-1 text-xs ${tone}`}>
+      {ok === true ? <Check size={12} /> : ok === false ? <X size={12} /> : null}
+      <span>{label}{value ? `: ${value}` : ""}</span>
+    </span>
+  );
+}
+
 async function resolveName(params: { name: string }): Promise<string> {
   return decodeURIComponent(params.name);
 }
@@ -72,7 +101,7 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
   const pkg = getIndex().packages.find((p) => p.name === pkgName) as Package | undefined;
   if (!pkg) notFound();
 
-  const readme = await fetchReadme(pkg.name);
+  const { readme, quality } = await fetchPackument(pkg.name);
 
   return (
     <main className="mx-auto max-w-4xl px-6 py-10">
@@ -117,6 +146,22 @@ export default async function PackageDetailPage({ params }: { params: Promise<{ 
         <Stat icon={<GitBranch size={13} />} label="last push" value={relativeTime(pkg.lastPush)} />
         <Stat icon={<GitFork size={13} />} label="open issues" value={pkg.openIssues !== null ? formatNumber(pkg.openIssues) : "—"} />
       </div>
+
+      {quality && (
+        <section className="mt-4">
+          <h2 className="mb-2 flex items-center gap-1.5 text-sm font-semibold text-neutral-300">
+            <ShieldCheck size={14} /> Signals
+          </h2>
+          <div className="flex flex-wrap gap-1.5">
+            <Signal ok={quality.license !== null} label="license" value={quality.license ?? "none"} />
+            <Signal ok={quality.hasTests} label="tests" />
+            <Signal ok={quality.piManifestValid} label="pi manifest" value={quality.piManifestValid ? quality.piManifestTypes.join(", ") : "missing"} />
+            <Signal ok={null} label="install size" value={formatSize(quality.installSize)} />
+            <Signal ok={null} label="deps" value={String(quality.dependencies)} />
+            <Signal ok={null} label="peer deps" value={String(quality.peerDependencies)} />
+          </div>
+        </section>
+      )}
 
       {pkg.categories.length > 0 && (
         <div className="mt-4 flex flex-wrap gap-1.5">
