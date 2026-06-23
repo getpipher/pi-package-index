@@ -167,3 +167,20 @@ export async function writeCache(dir: string, file: string, data: unknown): Prom
 
 /** Day-ish TTL: same-day retries reuse cache; next-day runs refetch. */
 export const DAY_TTL = 23 * 60 * 60 * 1000;
+
+/** Smooths request starts to at most `perSecond` per second, so rate-limited
+ *  APIs (npm downloads) don't 429 under sustained load. */
+export function createRateLimiter(perSecond: number): () => Promise<void> {
+  const intervalMs = 1000 / perSecond;
+  let nextAllowed = 0;
+  return async function acquire(): Promise<void> {
+    const now = Date.now();
+    if (now < nextAllowed) {
+      const wait = nextAllowed - now;
+      nextAllowed += intervalMs;
+      await new Promise((r) => setTimeout(r, wait));
+    } else {
+      nextAllowed = now + intervalMs;
+    }
+  };
+}

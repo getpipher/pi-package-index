@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import { join } from "node:path";
 import {
   DAY_TTL,
+  createRateLimiter,
   enumeratePackages,
   fetchDownloads,
   pool,
@@ -105,20 +106,35 @@ async function main(): Promise<void> {
   if (args.limit) metas = metas.slice(0, args.limit);
   console.log(`Enriching ${metas.length} packages…`);
 
+  // Downloads: npm downloads API is burst-sensitive — rate-limit to ~8/s (concurrency 8).
+  const dlLimiter = createRateLimiter(8);
   let done = 0;
-  const downloads = await pool(metas, 3, (m) => cachedDownloads(m.name, args.noCache), () => {
-    done++;
-    if (done % 50 === 0 || done === metas.length) console.log(`  downloads ${done}/${metas.length}`);
-  });
+  const downloads = await pool(
+    metas,
+    8,
+    async (m) => {
+      await dlLimiter();
+      return cachedDownloads(m.name, args.noCache);
+    },
+    () => {
+      done++;
+      if (done % 100 === 0 || done === metas.length) console.log(`  downloads ${done}/${metas.length}`);
+    },
+  );
 
+  // GitHub: authed (5000/hr) — rate-limit to ~10/s (concurrency 8) to dodge the secondary limit.
+  const ghLimiter = createRateLimiter(10);
   done = 0;
   const githubResults = await pool(
     metas,
     8,
-    (m) => cachedGithub(m, args.noCache),
+    async (m) => {
+      await ghLimiter();
+      return cachedGithub(m, args.noCache);
+    },
     () => {
       done++;
-      if (done % 50 === 0 || done === metas.length) console.log(`  github ${done}/${metas.length}`);
+      if (done % 100 === 0 || done === metas.length) console.log(`  github ${done}/${metas.length}`);
     },
   );
 
@@ -136,7 +152,8 @@ async function main(): Promise<void> {
   console.log(`Wrote data/packages.json (${packages.length} packages).`);
   const withStars = packages.filter((p) => p.stars !== null).length;
   const maintained = packages.filter((p) => p.maintained).length;
-  console.log(`  with stars: ${withStars} · maintained: ${maintained}`);
+  const zeroDl = packages.filter((p) => p.downloadsMonth === 0).length;
+  console.log(`  with stars: ${withStars} · maintained: ${maintained} · zero-downloads: ${zeroDl}`);
 }
 
 main().catch((err) => {
