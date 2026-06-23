@@ -1,10 +1,6 @@
-import { getPackages, getGeneratedAt } from "@/lib/data";
 import { Explorer } from "@/components/Explorer";
 
 export default function Home() {
-  const packages = getPackages();
-  const generatedAt = getGeneratedAt();
-
   return (
     <main className="mx-auto max-w-6xl px-6 py-10">
       <header className="mb-6">
@@ -32,7 +28,7 @@ export default function Home() {
         </p>
       </header>
 
-      <Explorer packages={packages} generatedAt={generatedAt} />
+      <Explorer />
     </main>
   );
 }

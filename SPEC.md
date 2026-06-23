@@ -66,7 +66,7 @@ Package detail pages · side-by-side compare · curated collections · README fu
                                               ▼
  ┌───────────────────────────── APP (Next.js, Vercel hobby) ──────────────────────────────────────┐
  │  SSG build from data/packages.json                                                               │
- │  /                ranked table, client-side search/filter (FlexSearch over ~1–2MB JSON)          │
+ │  /                ranked table; Explorer fetches filtered pages from /api/packages │
  │  /api/packages    stateless serverless route → reads bundled JSON, paginates/filters server-side │
  │  /about           data sources, refresh cadence, disclaimer                                       │
  └──────────────────────────────────────────────────────────────────────────────────────────────────┘
@@ -140,8 +140,10 @@ Keyword/regex scan over `name + description + pi manifest`: `mcp`, `solana`, `we
 - Default sort: downloads/mo desc. Toggle: stars / recent / name.
 - Row click → opens npm page (v1) / detail page (v1.1).
 
-### 7.2 Search + filters (client-side)
-- Free-text search (FlexSearch) over name + description + author.
+### 7.2 Search + filters (server-side, via the public API)
+- The `Explorer` fetches filtered/paginated pages from `/api/packages` (debounced, race-safe, load-more) instead of embedding all data — keeps the home HTML ~20 KB flat regardless of index size.
+- Free-text search is server-side substring over name + description + author (API `q`).
+- _Deviation from the original client-side FlexSearch plan (deferred to issue #4 / full-text README search)._
 - Filters: type (multi), category (multi), min downloads, min stars, maintained-only.
 - URL-synced query params (shareable filter views).
 - Result count + "showing N of 4,303".
@@ -164,7 +166,7 @@ Stateless Next.js route handler reading bundled `data/packages.json`.
 - **Framework:** Next.js 15 (App Router) + React 19, TypeScript strict.
 - **Styling:** Tailwind CSS v4, dark theme.
 - **Icons:** Lucide React.
-- **Search:** FlexSearch (client-side).
+- **Search:** server-side substring via `/api/packages?q=` (FlexSearch client-side deferred to issue #4).
 - **Pipeline:** TypeScript scripts in `pipeline/`, run by GH Actions on Node 22.
 - **Deploy:** Vercel (hobby), static SSG + one serverless route.
 - **Package manager:** pnpm.
