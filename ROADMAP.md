@@ -12,7 +12,7 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 
 ---
 
-## #1 — Package detail pages (`/p/[...name]`)  · effort: med
+## #1 — Package detail pages (`/p/[name]`)  · effort: med  ✅ SHIPPED (91d67af)
 **Goal:** on-site detail page per package: full meta, rendered (sanitized) README, install command, all stats, links. Table rows link in-site instead of to npm.
 **Files:** `src/app/p/[...name]/page.tsx` (dynamic, fetches packument README, `revalidate: 3600`), `src/components/PackageRow.tsx` (name link → `/p/<name>`), maybe `src/components/Readme.tsx`.
 **Deps:** `react-markdown`, `remark-gfm`, `rehype-raw`, `rehype-sanitize`.
