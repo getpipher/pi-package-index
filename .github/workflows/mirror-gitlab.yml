@@ -8,9 +8,11 @@ on:
 permissions:
   contents: read
 
+# Enable by setting the repository variable MIRROR_ENABLED=true
+# (and the GITLAB_SSH_KEY secret) once the GitLab mirror exists.
 jobs:
   mirror:
-    if: ${{ secrets.GITLAB_SSH_KEY != '' }}
+    if: ${{ vars.MIRROR_ENABLED == 'true' }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -27,6 +29,5 @@ jobs:
       - name: Push mirror
         run: |
           git remote add mirror "git@gitlab.com:getpipher/pi-package-index.git"
-          # .github -> dot-github on GitLab side (rename handled by GitLab project import settings)
           git push --force mirror main
           git push --force mirror --tags
