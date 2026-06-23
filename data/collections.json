@@ -1,0 +1,44 @@
+[
+  {
+    "slug": "mcp-adapters",
+    "title": "MCP adapters",
+    "description": "Model Context Protocol servers and bridges — bring MCP tools into Pi.",
+    "category": "mcp"
+  },
+  {
+    "slug": "context-savers",
+    "title": "Context-savers",
+    "description": "Compress, extend, or manage your context window so you get more mileage.",
+    "category": "context"
+  },
+  {
+    "slug": "subagents",
+    "title": "Subagents",
+    "description": "Delegation, orchestration, and parallel agent patterns.",
+    "category": "subagent"
+  },
+  {
+    "slug": "vision",
+    "title": "Vision",
+    "description": "Image understanding, OCR, and screenshot tooling.",
+    "category": "vision"
+  },
+  {
+    "slug": "browser-automation",
+    "title": "Browser automation",
+    "description": "Chrome, Playwright, scraping, and web interaction.",
+    "category": "browser"
+  },
+  {
+    "slug": "solana",
+    "title": "Solana",
+    "description": "SVM, DeFi, and RPC integrations for Pi.",
+    "category": "solana"
+  },
+  {
+    "slug": "memory",
+    "title": "Memory",
+    "description": "Remember, recall, and long-term memory extensions.",
+    "category": "memory"
+  }
+]

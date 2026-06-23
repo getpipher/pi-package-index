@@ -32,6 +32,7 @@ export default function RootLayout({
               </Link>
               <div className="flex items-center gap-4 text-sm text-neutral-400">
                 <Link href="/" className="hover:text-neutral-100">Packages</Link>
+                <Link href="/collections" className="hover:text-neutral-100">Collections</Link>
                 <Link href="/about" className="hover:text-neutral-100">About</Link>
                 <a href="/feed.xml" className="hover:text-neutral-100">Feed</a>
                 <a href="/api/packages" className="hover:text-neutral-100">API</a>
