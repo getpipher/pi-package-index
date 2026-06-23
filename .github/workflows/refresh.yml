@@ -48,14 +48,16 @@ jobs:
           if [ "${{ github.event_name }}" = "schedule" ]; then ARGS="--no-cache"; fi
           pnpm pipeline $ARGS
 
-      - name: Commit only on diff
+      - name: Commit data on diff (rebase against latest main before pushing)
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           if [[ -n "$(git status --porcelain data/packages.json data/packages.min.json)" ]]; then
             git add data/packages.json data/packages.min.json
-            git commit -m "data: refresh package index [skip ci]
-          Generated: $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+            git commit -m "data: refresh package index [skip ci]"
+            # main may have advanced while this run was executing; rebase data-only commit on top.
+            git fetch origin main
+            git rebase origin/main
             git push
           else
             echo "No data changes; skipping commit."

@@ -47,7 +47,7 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 **Concern:** 4,300 extra npm API calls/refresh. Decision: refresh **weekly** (separate `refresh-trends.yml` cron, Mondays), not daily. Note npm rate-limit (reuse rate limiter + cache).
 **Gate:** sparkline renders on detail + (optionally) rows; trends refresh weekly.
 
-## #5 — Security & quality signals  · effort: high
+## #5 — Security & quality signals  · effort: high → done light (on-demand)  ✅ SHIPPED (23416ed)
 **Goal:** per-package: has tests, has README, license, bundled vs peer deps, install size, `pi` manifest validation, archived. Surface as badges on rows + detail.
 **Files:** pipeline fetches packument (we already resolve repo; add `license`, `files`, `dependencies`, `peerDependencies`, `pi` manifest, `dist.unpackedSize`), derive signals, store in index (small fields). Render badges.
 **Data:** adds packument fetch for every package at refresh (4,300 calls) — heavy. Gate behind weekly or reuse the on-demand detail-page packument fetch (cache) rather than storing all. Recommend: compute on-demand at detail-page time (reuse packument fetch), not in the bulk index.
