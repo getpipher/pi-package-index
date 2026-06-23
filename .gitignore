@@ -12,6 +12,9 @@ tsconfig.tsbuildinfo
 # pipeline cache (generated, not committed)
 data/.cache/
 
+# generated bulk assets (produced by prebuild from data/packages.json)
+public/data/*.json
+
 # env
 .env
 .env.local

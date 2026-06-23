@@ -7,6 +7,7 @@
   "license": "MIT",
   "scripts": {
     "dev": "next dev",
+    "prebuild": "node scripts/copy-data.mjs",
     "build": "next build",
     "start": "next start",
     "typecheck": "tsc --noEmit",
@@ -17,11 +18,7 @@
     "node": ">=22"
   },
   "pnpm": {
-    "onlyBuiltDependencies": [
-      "esbuild",
-      "sharp",
-      "unrs-resolver"
-    ]
+    "onlyBuiltDependencies": ["esbuild", "sharp", "unrs-resolver"]
   },
   "dependencies": {
     "flexsearch": "^0.8.212",
@@ -31,6 +28,7 @@
     "react-dom": "^19.2.7"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "^3.3.5",
     "@tailwindcss/postcss": "^4.3.1",
     "@types/node": "^26.0.0",
     "@types/react": "^19.2.17",
