@@ -26,3 +26,4 @@ public/data/*.json
 # logs
 *.log
 npm-debug.log*
+.vercel
