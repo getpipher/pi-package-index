@@ -6,6 +6,8 @@ node_modules/
 .next/
 out/
 .vercel/
+next-env.d.ts
+tsconfig.tsbuildinfo
 
 # pipeline cache (generated, not committed)
 data/.cache/
