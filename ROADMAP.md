@@ -64,6 +64,52 @@ Locked order: **#1 → #7 → #3 → #4 → #2 → #6 → #5 → #8**.
 
 ---
 
+## Phase 2 — Plugin-hub experience (make `pi-package.rectorspace.com` feel like a polished marketplace, à la claudepluginhub.com)
+
+**Direction:** Phase 1 shipped a *data explorer* (rich, accurate, fast). Phase 2 turns it into a *plugin marketplace hub* — the thing a new visitor lands on and immediately wants to browse/submit/install from. Reference: `https://www.claudepluginhub.com/`.
+
+> ⚠️ **Reference not auto-scraped** (2026-07-04): the live site is behind a Cloudflare managed-challenge and the Wayback availability API 429'd, so the feature list below is derived from the general shape of plugin/marketplace hubs + what's *missing* from our shipped Phase 1 — **confirm against the live reference before locking scope** (open it in a browser, screenshot the nav + homepage + a detail page, then reprioritize). Candidate gaps relative to current state: no marketing landing (homepage = explorer table), no card grid / logos, no submit flow, no author pages, no ratings.
+
+Proposed order (revisit after the reference audit): **#9 → #11 → #10 → #12 → #14 → (#13 gated)**.
+
+### #9 — Marketing landing page (`/`)  · effort: med  · 🔜
+**Goal:** replace the homepage-as-explorer-table with a real hub landing: hero (value prop + primary search), "Featured / Editor's picks", "Trending this week" (by 12-wk downloads delta), "Newly published" (from #7 feed data), "Browse by use case" (collections from #3 as cards). Keep `/explore` (or `?view=table`) as the power-user explorer.
+**Files:** new `src/app/(landing)/page.tsx` (or move explorer to `/explore`), section components (`FeaturedGrid`, `TrendingRow`, `UseCaseCards`), reuse `data/collections.json` + `/api/packages`.
+**Deps:** none new (Tailwind already in). Needs #10 (featured flag) to populate "Editor's picks", or seed manually in `data/featured.json`.
+**Edge cases:** empty/unknown featured slug → skip card; trending delta ties → secondary sort by downloads; SEO — landing must still be SSR with proper OG/Twitter cards.
+**Gate:** `/` reads as a marketplace landing, not a table; typecheck + lint + build; Lighthouse SEO ≥ 90; mobile hero legible.
+
+### #11 — Marketplace visual polish (card grid + per-package identity)  · effort: med  · 🔜
+**Goal:** a card-first browse mode alongside the table: each card shows package identity (name, one-line tagline, author, type badge, mini sparkline from #6, star count). Consistent spacing, dark-mode-first, Lucide icons (never Unicode emojis). Unify row + card styling so collections/landing/author pages share one `PackageCard`.
+**Files:** `src/components/PackageCard.tsx`, restyle `PackageRow.tsx` to share primitives, toggle in `FilterState` (`view=grid|table`, URL-synced).
+**Edge cases:** very long names/taglines → truncate with `title`; missing sparkline data → hide the mini-chart; a11y — cards are `<article>` with a clear link affordance.
+**Gate:** grid + table both render from the same data; typecheck + lint + build; visual diff vs current table doesn't regress the explorer filters.
+
+### #10 — Submit-a-package + editor's picks  · effort: med  · 🔜
+**Goal:** (a) a `/submit` form that files a GitHub issue (or PR to a `data/submissions.json`) with package name + notes, so the community can suggest additions; (b) `data/featured.json` of editor's-pick slugs + short blurbs consumed by #9. Keeps curation human-gated (no auto-accept) to avoid spam/quality drift.
+**Files:** `src/app/submit/page.tsx`, `data/featured.json`, a tiny server action or GitHub-issue POST (token via Vercel env, server-only).
+**Deps:** GitHub token (Vercel env var, never client-exposed) for the issue-creation path; `data/featured.json` schema: `{slug, package, blurb, section}`.
+**Edge cases:** duplicate submission → dedupe by name (check open issues + index); rate-limit/abuse → honeypot + Cloudflare Turnstile if it becomes a problem; invalid package name → client-side npm-name regex + server re-check before filing.
+**Gate:** `/submit` with a valid new name files exactly one issue; invalid/duplicate names are rejected with a clear message; `featured.json` drives the landing "Editor's picks".
+
+### #12 — Author/maintainer pages (`/u/[name]`)  · effort: low–med  · 🔜
+**Goal:** browse packages by npm maintainer (derived from the packument `maintainers[].username`). Links from detail pages + cards. Differentiator the official gallery lacks.
+**Files:** `src/app/u/[name]/page.tsx`, reuse `PackageCard`; add a `maintainers` index at build time (the pipeline already resolves packuments — extract + store a small `{username: [names]}` map, or filter `packages.json` at request time).
+**Edge cases:** maintainer renames/departures → the field is point-in-time at refresh; collisions with package names under `/u/` vs `/p/` → distinct route prefixes avoid it; empty maintainer list → friendly empty state.
+**Gate:** `/u/<someone>` lists their packages; detail pages link to author; typecheck + lint + build.
+
+### #14 — Per-package logo / repo social preview  · effort: med  · 🔜 (after #11)
+**Goal:** card identity is much more compelling with a real icon — pull the GitHub repo's social preview image (or npm/owner avatar) as the card thumbnail; graceful fallback to a generated monogram.
+**Files:** pipeline step to fetch + cache images locally (`data/.cache/avatars`, 7-day TTL), `src/components/PackageLogo.tsx`, monogram fallback generator.
+**Edge cases:** many repos have no social preview → most cards fall back anyway; image hotlinking/404s → must proxy/cache locally to avoid broken images and respect upstream bandwidth; CSP for remote images.
+**Gate:** detail + cards render a logo with monogram fallback; no broken-image icons on cold cache; typecheck + lint + build.
+
+### #13 — Ratings / reviews (community)  · effort: high  · 🚧 GATED
+**Goal:** star ratings + short reviews per package — the headline "hub" social feature.
+**Gate (hard):** requires auth (GitHub OAuth via NextAuth/Auth.js), a database (Vercel Postgres / Turso / Cloudflare D1), spam moderation, and ToS/abuse handling. **Do not start** until Phase 2 core (#9–#12) lands and traffic justifies the ops surface. Consider a lighter v0: "GitHub reactions mirror" (count 👍 on the package's repo issue/README) to get a signal without auth/DB.
+
+---
+
 ## Execution rules
 - One commit per issue (feature), conventional `feat(#n): …`. Push → git→Vercel auto-deploys.
 - Each issue: PLAN-style gate (typecheck + lint + build + manual verify) before claiming done.
