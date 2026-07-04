@@ -2,6 +2,7 @@ import "./globals.css";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GithubIcon } from "@/components/GithubIcon";
+import { Analytics } from "@vercel/analytics/next";
 
 export const metadata: Metadata = {
   title: "Pi Package Index — unofficial community index",
@@ -73,6 +74,7 @@ export default function RootLayout({
             </p>
           </footer>
         </div>
+        <Analytics />
       </body>
     </html>
   );
