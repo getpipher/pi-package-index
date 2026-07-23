@@ -49,9 +49,18 @@ export function buildPackage(e: Enrichment): Package {
 }
 
 export function buildIndex(generatedAt: string, packages: Package[]): IndexData {
+  // Defensive dedup by name: if the source list carries duplicates (e.g. a
+  // stale search cache predating the enumeratePackages dedup), drop later
+  // occurrences so the published index never has duplicate rows.
+  const seen = new Set<string>();
+  const unique = packages.filter((p) => {
+    if (seen.has(p.name)) return false;
+    seen.add(p.name);
+    return true;
+  });
   return {
     generatedAt,
-    count: packages.length,
-    packages,
+    count: unique.length,
+    packages: unique,
   };
 }
