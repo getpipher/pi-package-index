@@ -50,9 +50,15 @@ function normalizeAuthor(author: SearchResponse["objects"][number]["package"]["a
   return author.name ?? null;
 }
 
-/** Enumerate every npm package tagged with the `pi-package` keyword. */
+/** Enumerate every npm package tagged with the `pi-package` keyword.
+ *
+ * Dedupes by name: the npm search index's `total` drifts between page requests
+ * (packages are published/unpublished mid-enumeration), so the same package
+ * can appear on two adjacent pages. Without dedup this produced ~250 duplicate
+ * rows in the published index. */
 export async function enumeratePackages(onProgress?: (n: number, total: number) => void): Promise<NpmPackageMeta[]> {
   const out: NpmPackageMeta[] = [];
+  const seen = new Set<string>();
   let from = 0;
   let total = Infinity;
   while (from < total) {
@@ -61,6 +67,8 @@ export async function enumeratePackages(onProgress?: (n: number, total: number) 
     total = data.total;
     for (const o of data.objects) {
       const p = o.package;
+      if (seen.has(p.name)) continue;
+      seen.add(p.name);
       out.push({
         name: p.name,
         description: p.description ?? "",
